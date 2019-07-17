@@ -1,0 +1,2 @@
+class DatasetCreatorException(Exception):
+    pass
