@@ -8,7 +8,7 @@
 
 具体的にはPGGANのGeneratorのLossにRankNetの出力を逆数にして足す。
 
-## 参考
+## 参考文献
 ### RankNet
 * [RankNetを実装してランキング学習](https://qiita.com/kzkadc/items/c358338f0d8bd764f514)
 * [ニューラルネットワークを用いたランク学習](https://qiita.com/sz_dr/items/0e50120318527a928407)
@@ -17,3 +17,8 @@
 * [PGGAN「優しさあふれるカリキュラム学習」](https://qiita.com/Phoeboooo/items/ea0e44733e2d2240879b)
 * [GANを使って簡単に架空アイドル画像を自動生成](https://www.mahirokazuko.com/entry/2018/12/15/201501)
 * [ニートの僕が幼女の顔生成に挑戦](https://qiita.com/pnyompen/items/412734d244d7ebb45ca7)
+
+## 参考コード
+### PGGAN
+* [tensorflow版](https://github.com/tkarras/progressive_growing_of_gans)
+* [keras版](https://github.com/MSC-BUAA/Keras-progressive_growing_of_gans)
