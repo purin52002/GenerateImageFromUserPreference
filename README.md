@@ -22,3 +22,8 @@
 ### PGGAN
 * [tensorflow版](https://github.com/tkarras/progressive_growing_of_gans)
 * [keras版](https://github.com/MSC-BUAA/Keras-progressive_growing_of_gans)
+
+## 準備
+pythonのバージョンは3.7
+
+必要なモジュールは`pip install -r requirements.txt`でインストールできるはず。（随時更新）
