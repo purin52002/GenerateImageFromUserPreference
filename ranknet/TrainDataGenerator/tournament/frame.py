@@ -1,13 +1,27 @@
-from tkinter import Frame, Button
-from GUI.image_canvas_frame import ImageCanvas
+from tkinter import Frame, Button, Canvas
+from PIL import Image, ImageTk
+
+
+class ImageCanvas(Canvas):
+    def __init__(self, master: Frame, canvas_size: tuple):
+        self.canvas_size = canvas_size
+        canvas_width, canvas_height = canvas_size
+        super(ImageCanvas, self).__init__(
+            master, width=canvas_width, height=canvas_height)
+        self.image_id = self.create_image(canvas_width//2, canvas_height//2)
+        self.image = None
+
+    def update_image(self, image: Image.Image):
+        image = image.resize(self.canvas_size)
+        self.image = ImageTk.PhotoImage(image)
+        self.itemconfigure(self.image_id, image=self.image)
 
 
 class CompareCanvasFrame(Frame):
-    def __init__(self, master: Frame,
-                 canvas_width: int, canvas_height: int):
+    def __init__(self, master: Frame, canvas_size: tuple):
         super(CompareCanvasFrame, self).__init__(master)
 
-        self.canvas = ImageCanvas(self, canvas_width, canvas_height)
+        self.canvas = ImageCanvas(self, canvas_size)
         self.button = Button(self, text='good', width=6,)
         self.canvas.pack()
         self.button.pack()

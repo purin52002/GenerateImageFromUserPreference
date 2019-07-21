@@ -1,12 +1,10 @@
 import tensorflow as tf
-from TrainDataGenerator.TFRecordsMaker.util \
-    import IMAGE_CHANNEL, IMAGE_HEIGHT, IMAGE_WIDTH
 from pathlib import Path
 
 SCOPE = 'ranknet_dataset'
 
 
-def make_dataset(dataset_file_path: str, batch_size: int, name: str):
+def make_dataset(dataset_file_path: str, image_shape:tuple, batch_size: int, name: str):
     dataset_file_path = Path(dataset_file_path)
     if not dataset_file_path.exists():
         raise FileNotFoundError

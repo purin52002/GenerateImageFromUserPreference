@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from random import sample
 from logging import getLogger, INFO
+from json import dump
 
 
 class GameException(Exception):
@@ -121,3 +122,7 @@ class TournamentGame:
         current_match_num = len(self.current_player_index_list)
         next_match_num = len(self.next_player_index_list)
         return current_match_num+next_match_num
+
+    def save_as_json(self, save_path: str):
+        with open(save_path, 'w') as fp:
+            dump(self.scored_player_list, fp, indent=4, ensure_ascii=False)
