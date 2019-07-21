@@ -1,3 +1,4 @@
 cmake
 face_recognition
 opencv-python
+google_images_download
