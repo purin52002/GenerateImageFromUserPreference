@@ -1,0 +1,2 @@
+class TFRecordsMakerException(Exception):
+    pass
