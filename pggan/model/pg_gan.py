@@ -19,7 +19,7 @@ class GradNorm(layers.Layer):
         assert len(grads) == 1
         grad = grads[0]
         return K.sqrt(K.sum(K.batch_flatten(K.square(grad)), axis=1,
-        keepdims=True))
+                            keepdims=True))
 
     def compute_output_shape(self, input_shapes):
         return (input_shapes[1][0], 1)
