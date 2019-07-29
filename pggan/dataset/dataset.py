@@ -8,7 +8,6 @@
 import os
 import numpy as np
 import tensorflow as tf
-import tfutil
 from pathlib import Path
 
 
@@ -154,7 +153,8 @@ class TFRecordDataset:
         self.configure(minibatch_size, lod)
         if self._tf_minibatch_np is None:
             self._tf_minibatch_np = self.get_minibatch_tf()
-        return tfutil.run(self._tf_minibatch_np)
+        minibatch = tf.get_default_session().run(self._tf_minibatch_np)
+        return minibatch
 
 
 # ----------------------------------------------------------------------------
@@ -163,15 +163,15 @@ class TFRecordDataset:
 # Helper func for constructing a dataset object using the given options.
 
 
-def load_dataset(class_name='dataset.TFRecordDataset', data_dir=None,
+def load_dataset(data_dir=None,
                  verbose=False, **kwargs):
     adjusted_kwargs = dict(kwargs)
     if 'tfrecord_dir' in adjusted_kwargs and data_dir is not None:
         adjusted_kwargs['tfrecord_dir'] = os.path.join(
             data_dir, adjusted_kwargs['tfrecord_dir'])
     if verbose:
-        print('Streaming data using %s...' % class_name)
-    dataset = tfutil.import_obj(class_name)(**adjusted_kwargs)
+        print('Streaming data using TFRecordDataset...')
+    dataset = TFRecordDataset(**adjusted_kwargs)
     if verbose:
         print('Dataset shape =', np.int32(dataset.shape).tolist())
         print('Dynamic range =', dataset.dynamic_range)
