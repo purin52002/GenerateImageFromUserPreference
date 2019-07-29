@@ -82,9 +82,9 @@ def load_dataset(dataset_spec=None, verbose=True, **spec_overrides):
         print('Loading dataset...')
 
     if dataset_spec is None:
-        dataset_spec = config.dataset
+        dataset_spec = config.main.dataset
 
-    data_dir_path = Path(config.data_dir)
+    data_dir_path = Path(config.main.data_dir)
 
     # take a copy of the dict before modifying it
     dataset_spec = dict(dataset_spec)
@@ -333,6 +333,8 @@ def train_gan(
 
 
 if __name__ == '__main__':
-    np.random.seed(config.random_seed)
+    from config import main
+    print(main)
+    np.random.seed(config.main.random_seed)
 
-    train_gan(**config.train)
+    train_gan(**config.main.train_arg_dict)

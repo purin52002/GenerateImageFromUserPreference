@@ -3,9 +3,10 @@ result_dir = 'results'
 
 random_seed = 1000
 dataset = None
-
-train = dict(                               # Training parameters:
-    separate_funcs=True,         # Alternate between training generator and discriminator?
+# Training parameters:
+train_arg_dict = dict(
+    # Alternate between training generator and discriminator?
+    separate_funcs=True,
     D_training_repeats=1,            # n_{critic}
     G_learning_rate_max=0.001,        # \alpha
     D_learning_rate_max=0.001,        # \alpha
@@ -73,13 +74,13 @@ loss = dict(                                # Loss function:
     cond_weight=1.0,          # Weight of the conditioning terms.
 )
 
-if 1:
-    run_desc = 'celeba'
+# if 1:
+#     run_desc = 'celeba'
 
-    dataset = dict(h5_path='celeba-128x128.h5', resolution=128,
-                   max_labels=0, mirror_augment=True)
+#     dataset = dict(h5_path='celeba-128x128.h5', resolution=128,
+#                    max_labels=0, mirror_augment=True)
 
-    train.update(lod_training_kimg=800, lod_transition_kimg=800,
-                 rampup_kimg=0, total_kimg=10000, minibatch_overrides={})
-    G.update(fmap_base=2048)
-    D.update(fmap_base=2048)
+#     train.update(lod_training_kimg=800, lod_transition_kimg=800,
+#                  rampup_kimg=0, total_kimg=10000, minibatch_overrides={})
+#     G.update(fmap_base=2048)
+#     D.update(fmap_base=2048)
