@@ -1,6 +1,6 @@
 import tensorflow as tf
-import disc_layers
-import common_layers
+from . import layers as disc_layers
+from ..common import layers as common_layers
 
 layers = tf.keras.layers
 

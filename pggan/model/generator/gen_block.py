@@ -1,6 +1,6 @@
 import tensorflow as tf
-import common_layers
-import gen_layers
+from ..common import layers as common_layers
+from . import gen_layers
 
 layers = tf.keras.layers
 

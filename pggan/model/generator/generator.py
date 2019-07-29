@@ -1,11 +1,9 @@
 import tensorflow as tf
 import numpy as np
 
-import gen_layers
-import gen_block
-import common_block
-import common_func
-import common_layers
+from . import gen_layers
+from . import gen_block
+from .. import common
 
 layers = tf.keras.layers
 activations = tf.keras.activations
@@ -39,7 +37,7 @@ def Generator(
 
         cur_lod = K.variable(np.float32(0.0), dtype='float32', name='cur_lod')
 
-        numf = common_func.FeatureNumber(fmap_base, fmap_decay, fmap_max)
+        numf = common.func.FeatureNumber(fmap_base, fmap_decay, fmap_max)
 
         if latent_size is None:
             latent_size = numf(0)
@@ -53,7 +51,7 @@ def Generator(
         G_convblock = gen_block.ConvBlock(act, act_init, use_wscale,
                                           use_batchnorm,
                                           use_pixelnorm)
-        NINblock = common_block.NINBlock(activations.linear,
+        NINblock = common.block.NINBlock(activations.linear,
                                          initializers.he_normal(), use_wscale)
 
         inputs = [tf.keras.Input(shape=[latent_size], name='Glatents')]
@@ -77,7 +75,7 @@ def Generator(
 
         lods = [NINblock(l, num_channels, name='Glod%d' % i)
                 for i, l in enumerate(reversed(lods))]
-        output = common_layers.LODSelectLayer(cur_lod, name='Glod')(lods)
+        output = common.layers.LODSelectLayer(cur_lod, name='Glod')(lods)
         if tanh_at_end is not None:
             output = activations.Activation('tanh', name='Gtanh')(output)
             if tanh_at_end != 1.0:

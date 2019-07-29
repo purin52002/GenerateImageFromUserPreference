@@ -1,12 +1,10 @@
 import tensorflow as tf
 import numpy as np
 
-import common_block
-import common_layers
-import common_func
+from .. import common
 
-import disc_block
-import disc_layers
+from . import block
+from . import layers as disc_layers
 
 layers = tf.keras.layers
 initializers = tf.keras.initializers
@@ -38,26 +36,26 @@ def Discriminator(
         gdrop_strength = K.variable(
             np.float(0.0), dtype='float32', name='gdrop_strength')
 
-        numf = common_func.FeatureNumber(fmap_base, fmap_decay, fmap_max)
+        numf = common.func.FeatureNumber(fmap_base, fmap_decay, fmap_max)
 
-        NINblock = common_block.NINBlock(layers.LeakyReLU(),
+        NINblock = common.block.NINBlock(layers.LeakyReLU(),
                                          initializers.he_normal(), use_wscale)
 
         def Downscale2DLayer(incoming, scale_factor, **kwargs):
             pool2d = layers.AveragePooling2D(pool_size=scale_factor, **kwargs)
             return pool2d(incoming)
 
-        ConvBlock = disc_block.ConvBlock(layers.LeakyReLU(),
-                                         initializers.he_normal(),
-                                         epsilon,
-                                         gdrop_strength,
-                                         use_wscale,
-                                         use_layernorm,
-                                         use_gdrop)
+        ConvBlock = block.ConvBlock(layers.LeakyReLU(),
+                                    initializers.he_normal(),
+                                    epsilon,
+                                    gdrop_strength,
+                                    use_wscale,
+                                    use_layernorm,
+                                    use_gdrop)
 
-        DenseBlock = disc_block.DenseBlock(layers.LeakyReLU(),
-                                           initializers.he_normal(),
-                                           use_wscale)
+        DenseBlock = block.DenseBlock(layers.LeakyReLU(),
+                                      initializers.he_normal(),
+                                      use_wscale)
 
         inputs = layers.Input(shape=[2**R, 2**R, num_channels], name='Dimages')
         net = NINblock(inputs, numf(R-1), name='D%dx' % (R-1))
@@ -71,7 +69,7 @@ def Discriminator(
             lod = NINblock(lod, numf(i - 1),  name='D%dx' % (i - 1))
 
             select_layer = \
-                common_layers.LODSelectLayer(cur_lod, name='D%dlod' %
+                common.layers.LODSelectLayer(cur_lod, name='D%dlod' %
                                              (i - 1),
                                              first_incoming_lod=R - i - 1)
             net = select_layer([net, lod])

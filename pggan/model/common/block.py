@@ -1,5 +1,5 @@
 import tensorflow as tf
-import common_layers
+from . import common_layers
 
 layers = tf.keras.layers
 
