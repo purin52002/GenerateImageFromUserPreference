@@ -9,7 +9,7 @@ class ExporterException(DatasetCreatorException):
 
 
 class TFRecordExporter:
-    def __init__(self, tfrecord_dir_path: str, expected_images,
+    def __init__(self, tfrecord_dir_path: str, expected_images: int,
                  print_progress=True, progress_interval=10):
         self.tfrecord_dir_path = Path(tfrecord_dir_path)
         self.tfr_prefix = \
