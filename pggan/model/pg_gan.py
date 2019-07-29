@@ -1,7 +1,14 @@
 import tensorflow as tf
 
+from .discrminator.network import Discriminator
+from .generator.generator import Generator
+
+from .filer import load_GD_weights
+from . import config
+
 K = tf.keras.backend
 layers = tf.keras.layers
+optimizers = tf.keras.optimizers
 
 
 class GradNorm(layers.Layer):
@@ -25,18 +32,27 @@ class GradNorm(layers.Layer):
         return (input_shapes[1][0], 1)
 
 
-def PG_GAN(G, D, latent_size, label_size, resolution, num_channels):
-    print(f'Latent size: {latent_size}')
-    print(f'Label size: {label_size}')
+def wasserstein_loss(y_true, y_pred):
+    return K.mean(y_true * y_pred)
 
-    # inputs = [Input(shape=[latent_size], name='GANlatents')]
-    # if label_size:
-    #    inputs += [Input(shape=[label_size], name='GANlabels')]
 
-    # fake = G(inputs)
-    # GAN_out = D(fake)
+def multiple_loss(y_true, y_pred):
+    return K.mean(y_true*y_pred)
 
-    # G_train = Model(inputs = inputs,outputs = [GAN_out],name = "PG_GAN")
+
+def mean_loss(y_true, y_pred):
+    return K.mean(y_pred)
+
+
+def PG_GAN(G, D, latent_size, label_size, resolution,
+           num_channels):
+
+    print("Latent size:")
+    print(latent_size)
+
+    print("Label size:")
+    print(label_size)
+
     G_train = tf.keras.Sequential([G, D])
     G_train.cur_lod = G.cur_lod
 
@@ -45,10 +61,55 @@ def PG_GAN(G, D, latent_size, label_size, resolution, num_channels):
     real_input = tf.keras.Input(shape)
     interpolation = tf.keras.Input(shape)
 
-    sub = layers.Subtract()([D(gen_input), D(real_input)])
+    sub = tf.keras.Subtract()([D(gen_input), D(real_input)])
     norm = GradNorm()([D(interpolation), interpolation])
-    D_train = tf.keras.Model([gen_input, real_input, interpolation],
-                             [sub, norm])
+    D_train = tf.keras.Model(
+        [gen_input, real_input, interpolation], [sub, norm])
     D_train.cur_lod = D.cur_lod
 
     return G_train, D_train
+
+
+def build_trainable_model(resume_network,
+                          num_channels,
+                          resolution,
+                          label_size,
+                          adam_beta1, adam_beta2, adam_epsilon
+                          ):
+    G = Generator(num_channels=num_channels,
+                  resolution=resolution,
+                  label_size=label_size, **config.G)
+    D = Discriminator(num_channels=num_channels,
+                      resolution=resolution,
+                      label_size=label_size, **config.D)
+    if resume_network:
+        print('Resuming weight from:'+resume_network)
+        G, D = load_GD_weights(
+            G, D, str(config.result_dir_path / resume_network), True)
+
+    G_train, D_train = PG_GAN(
+        G, D, config.G['latent_size'], 0, resolution, num_channels)
+
+    print(G.summary())
+    print(D.summary())
+
+    G_opt = optimizers.Adam(lr=0.0, beta_1=adam_beta1,
+                            beta_2=adam_beta2, epsilon=adam_epsilon)
+    D_opt = optimizers.Adam(lr=0.0, beta_1=adam_beta1,
+                            beta_2=adam_beta2, epsilon=adam_epsilon)
+
+    if config.loss['type'] == 'wass':
+        G_loss = wasserstein_loss
+        D_loss = wasserstein_loss
+    elif config.loss['type'] == 'iwass':
+        G_loss = multiple_loss
+        D_loss = [mean_loss, 'mse']
+        D_loss_weight = [1.0, config.loss['iwass_lambda']]
+
+    G.compile(G_opt, loss=G_loss)
+    D.trainable = False
+    G_train.compile(G_opt, loss=G_loss)
+    D.trainable = True
+    D_train.compile(D_opt, loss=D_loss, loss_weights=D_loss_weight)
+
+    return G, G_train, D, D_train

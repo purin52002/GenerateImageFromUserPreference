@@ -1,8 +1,5 @@
 import time
 
-import dataset
-import config
-
 import tensorflow as tf
 
 import misc
@@ -10,61 +7,14 @@ from pathlib import Path
 import math
 import numpy as np
 
-from model.generator import Generator
-from model.discriminator import Discriminator
-from model.pg_gan import PG_GAN
+from model.filer import save_GD_weights, save_GD
+from model.pg_gan import build_trainable_model
+
+import config
+from dataset.dataset import TFRecordDataset
 
 K = tf.keras.backend
 optimizers = tf.keras.optimizers
-
-
-def load_GD(load_dir_path: str, is_compile=False):
-    load_dir_path = Path(load_dir_path)
-
-    G_path = str(load_dir_path / 'Generator.h5')
-    D_path = str(load_dir_path/'Discriminator.h5')
-
-    G = tf.keras.models.load_model(G_path, compile=is_compile)
-    D = tf.keras.models.load_model(D_path, compile=is_compile)
-    return G, D
-
-
-def save_GD(G, D, save_dir_path: str, overwrite=False):
-    save_dir_path = Path(save_dir_path)
-    save_dir_path.mkdir(parents=True, exist_ok=True)
-
-    G_path = str(save_dir_path/'Generator.h5')
-    D_path = str(save_dir_path/'Discriminator.h5')
-
-    tf.keras.models.save_model(G, G_path, overwrite=overwrite)
-    tf.keras.models.save_model(D, D_path, overwrite=overwrite)
-    print(f'Save model to {str(save_dir_path)}')
-
-
-def load_GD_weights(G, D, load_dir_path: str, by_name=True):
-    load_dir_path = Path(load_dir_path)
-
-    G_path = str(load_dir_path / 'Generator.h5')
-    D_path = str(load_dir_path/'Discriminator.h5')
-
-    G.load_weights(G_path, by_name=by_name)
-    D.load_weights(D_path, by_name=by_name)
-    return G, D
-
-
-def save_GD_weights(G, D, save_dir_path: str):
-    try:
-        save_dir_path = Path(save_dir_path)
-        save_dir_path.mkdir(parents=True, exist_ok=True)
-
-        G_path = str(save_dir_path/'Generator.h5')
-        D_path = str(save_dir_path/'Discriminator.h5')
-
-        G.save_weights(G_path)
-        D.save_weights(D_path)
-        print(f'Save weights to {str(save_dir_path)}')
-    except ValueError:
-        print('Save model snapshot failed!')
 
 
 def rampup(epoch, rampup_length):
@@ -144,7 +94,7 @@ def load_dataset(dataset_spec=None, verbose=True, **spec_overrides):
     if 'label_path' in dataset_spec:
         dataset_spec['label_path'] = \
             str(data_dir_path / dataset_spec['label_path'])
-    training_set = dataset.Dataset(**dataset_spec)
+    training_set = TFRecordDataset(**config.dataset.dataset_arg_dict)
 
     if verbose:
         print('Dataset shape =', np.int32(training_set.shape).tolist())
@@ -196,32 +146,13 @@ def train_gan(
 
     training_set, drange_orig = load_dataset()
 
-    if resume_network:
-        print('Resuming weight from:'+resume_network)
-        G = Generator(num_channels=training_set.shape[3],
-                      resolution=training_set.shape[1],
-                      label_size=training_set.labels.shape[1], **config.G)
-        D = Discriminator(
-            num_channels=training_set.shape[3],
-            resolution=training_set.shape[1],
-            label_size=training_set.labels.shape[1], **config.D)
-        G, D = load_GD_weights(
-            G, D, str(Path(config.result_dir) / resume_network), True)
-    else:
-        G = Generator(num_channels=training_set.shape[3],
-                      resolution=training_set.shape[1],
-                      label_size=training_set.labels.shape[1], **config.G)
-        D = Discriminator(
-            num_channels=training_set.shape[3],
-            resolution=training_set.shape[1],
-            label_size=training_set.labels.shape[1], **config.D)
-
-    G_train, D_train = PG_GAN(
-        G, D, config.G['latent_size'], 0, training_set.shape[1],
-        training_set.shape[3])
-
-    print(G.summary())
-    print(D.summary())
+    G, G_train,\
+        D, D_train = build_trainable_model(resume_network,
+                                           training_set.shape[3],
+                                           training_set.shape[1],
+                                           training_set.labels.shape[1],
+                                           adam_beta1, adam_beta2,
+                                           adam_epsilon)
 
     # Misc init.
     resolution_log2 = int(np.round(np.log2(G.output_shape[2])))
@@ -230,25 +161,6 @@ def train_gan(
     cur_lod = 0.0
     min_lod, max_lod = -1.0, -2.0
     fake_score_avg = 0.0
-
-    G_opt = optimizers.Adam(lr=0.0, beta_1=adam_beta1,
-                            beta_2=adam_beta2, epsilon=adam_epsilon)
-    D_opt = optimizers.Adam(lr=0.0, beta_1=adam_beta1,
-                            beta_2=adam_beta2, epsilon=adam_epsilon)
-
-    if config.loss['type'] == 'wass':
-        G_loss = wasserstein_loss
-        D_loss = wasserstein_loss
-    elif config.loss['type'] == 'iwass':
-        G_loss = multiple_loss
-        D_loss = [mean_loss, 'mse']
-        D_loss_weight = [1.0, config.loss['iwass_lambda']]
-
-    G.compile(G_opt, loss=G_loss)
-    D.trainable = False
-    G_train.compile(G_opt, loss=G_loss)
-    D.trainable = True
-    D_train.compile(D_opt, loss=D_loss, loss_weights=D_loss_weight)
 
     cur_nimg = int(resume_kimg * 1000)
     cur_tick = 0
@@ -421,10 +333,6 @@ def train_gan(
 
 
 if __name__ == '__main__':
-
     np.random.seed(config.random_seed)
-    func_params = config.train
 
-    func_name = func_params['func']
-    del func_params['func']
-    globals()[func_name](**func_params)
+    train_gan(**config.train)
